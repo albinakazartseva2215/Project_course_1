@@ -1,7 +1,9 @@
+import json
 import logging
 import os
 from datetime import datetime
 from logging import Logger
+from typing import List, Dict
 
 import pandas as pd
 import requests
@@ -11,9 +13,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
+API_KEY_MARKET = os.getenv("API_KEY_MARKET")
 url = f"https://api.apilayer.com/exchangerates_data/convert"
 
-PATH_TO_FILE = "../data/transactions_excel.xlsx"
+PATH_TO_FILE = "../data/operations.xlsx"
+PATH_TO_FILE_JSON = "../user_settings.json"
 
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -44,9 +48,9 @@ def get_date_time(date_time: str) -> list[str]:
 def get_path_and_period(path_to_file: str, period_date: list) -> DataFrame:
     """Функция принимает путь к Excel-файлу, список дат и возвращает таблицу с датами в принимаемом периоде"""
     df = pd.read_excel(path_to_file, sheet_name="Отчет по операциям")
-    df["Дата операции"] = pd.to_datetime(df["Дата операции"])
-    start_date = period_date[0]
-    end_date = period_date[1]
+    df["Дата операции"] = pd.to_datetime(df["Дата операции"], dayfirst=True)
+    start_date = datetime.strptime(period_date[0], "%d.%m.%Y %H:%M:%S")
+    end_date = datetime.strptime(period_date[1], "%d.%m.%Y %H:%M:%S")
     filtered_df = df[(df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date)]
     sorted_df = filtered_df.sort_values(by="Дата операции")
     return sorted_df
@@ -75,10 +79,11 @@ def get_time_for_greeting(date_time: str) -> str:
         return greeting_night
 
 def get_transactions_with_usd_eur(sorted_df: DataFrame) -> float:
+    """Функция прнимает на вход DataFrame и возвращает курс валют"""
     global currency_rates, currency_code_response
     currency_code = sorted_df["Валюта операции"]
     amount = sorted_df["Сумма операции"]
-    currency_rates: []
+    currency_rates = []
     for currency_code, amount in sorted_df.items():
         if currency_code != "RUB":
             try:
@@ -98,4 +103,40 @@ def get_transactions_with_usd_eur(sorted_df: DataFrame) -> float:
                 utils_loger.error("Ошибка конвертации валюты")
                 print("Ошибка конвертации валюты")
         else:
-            return currency_rates.append({"currency": currency_code_response, "rate": round(amount, 2)})
+            return currency_rates.append({"currency": f"{currency_code_response}", "rate": f"{round(amount, 2)}"})
+
+
+def get_stocks(path_to_json, symbol=None):
+    """Функция принимает на вход путь к json файлу и возвращает цены на акции"""
+    try:
+        with open(path_to_json, "r", encoding="utf-8") as file:
+            stocks_prices = []
+            data = json.load(file)
+            stocks_list = data["user_stocks"]
+            for stock in stocks_list:
+                url = "https://api.marketstack.com/v1/eod?access_key={API_KEY_MARKET}"
+                querystring = {"symbols": f"{stock}"}
+
+                response = requests.get(url, params=querystring)
+                result = response.json()
+                stocks_price = result["data"]["adj_close"]
+                stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
+            return stocks_prices
+    except FileNotFoundError:
+        utils_loger.error("Файл не найден")
+        print("Файл не найден")
+
+
+def get_top_transactions(sorted_df: DataFrame) -> list[dict]:
+    """Функция принимает датафрейм и возвращает 5 топ-транзакций по сумме платежа"""
+    top_pay_transactions = []
+    sorted_pay_df = sorted_df.sort_values(by="Сумма платежа", ascending=False)
+    top_transactions = sorted_pay_df.head()
+    for i in range(len(sorted_pay_df)):
+        for col in sorted_pay_df.columns:
+            top_pay_transactions.append({"date": f"{top_transactions["Дата платежа"]}", "amount": f"{top_transactions["Сумма платежа"]}", "category": f"{top_transactions["Категория"]}", "description": f"{top_transactions["Описание"]}"})
+    return top_pay_transactions
+
+if __name__ == "__main__":
+    print(get_date_time("2018-05-20 15:30:00"))
+    print(get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00']))
