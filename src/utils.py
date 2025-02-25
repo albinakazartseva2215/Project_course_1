@@ -13,11 +13,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
-API_KEY_MARKET = os.getenv("API_KEY_MARKET")
+access_key = os.getenv("API_KEY_MARKET")
 url = f"https://api.apilayer.com/exchangerates_data/convert"
+url_stocks = f"https://api.marketstack.com/v1/eod/latest?access_key={access_key}"
 
 PATH_TO_FILE = "../data/operations.xlsx"
-PATH_TO_FILE_JSON = "../user_settings.json"
+PATH_TO_FILE_JSON = "../data/user_settings.json"
 
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -80,7 +81,6 @@ def get_time_for_greeting(date_time: str) -> str:
 
 def get_transactions_with_usd_eur(sorted_df: DataFrame) -> float:
     """Функция прнимает на вход DataFrame и возвращает курс валют"""
-    global currency_rates, currency_code_response
     currency_code = sorted_df["Валюта операции"]
     amount = sorted_df["Сумма операции"]
     currency_rates = []
@@ -96,17 +96,16 @@ def get_transactions_with_usd_eur(sorted_df: DataFrame) -> float:
                     currency_code_response = result["query"]["from"]
                     currency_amount = round(result["result"], 2)
                     if currency_code_response not in currency_rates:
-                        return currency_rates.append({"currency": currency_code_response, "rate": currency_amount})
+                        currency_rates.append({"currency": f"{currency_code_response}", "rate": f"{round(currency_amount, 2)}"})
                 else:
                     print(status_code)
             except requests.exceptions.RequestException:
                 utils_loger.error("Ошибка конвертации валюты")
                 print("Ошибка конвертации валюты")
-        else:
-            return currency_rates.append({"currency": f"{currency_code_response}", "rate": f"{round(amount, 2)}"})
+    return currency_rates
 
 
-def get_stocks(path_to_json, symbol=None):
+def get_stocks(path_to_json: object) -> object:
     """Функция принимает на вход путь к json файлу и возвращает цены на акции"""
     try:
         with open(path_to_json, "r", encoding="utf-8") as file:
@@ -114,13 +113,15 @@ def get_stocks(path_to_json, symbol=None):
             data = json.load(file)
             stocks_list = data["user_stocks"]
             for stock in stocks_list:
-                url = "https://api.marketstack.com/v1/eod?access_key={API_KEY_MARKET}"
-                querystring = {"symbols": f"{stock}"}
-
-                response = requests.get(url, params=querystring)
-                result = response.json()
-                stocks_price = result["data"]["adj_close"]
-                stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
+                querystring = {"symbols":f"{stock}"}
+                response = requests.get(url_stocks, params=querystring)
+                status_code = response.status_code
+                if status_code == 200:
+                    data = response.json()
+                    stocks_price = data['data'][0]['high']
+                    stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
+                else:
+                    print(status_code)
             return stocks_prices
     except FileNotFoundError:
         utils_loger.error("Файл не найден")
@@ -137,6 +138,16 @@ def get_top_transactions(sorted_df: DataFrame) -> list[dict]:
             top_pay_transactions.append({"date": f"{top_transactions["Дата платежа"]}", "amount": f"{top_transactions["Сумма платежа"]}", "category": f"{top_transactions["Категория"]}", "description": f"{top_transactions["Описание"]}"})
     return top_pay_transactions
 
-if __name__ == "__main__":
-    print(get_date_time("2018-05-20 15:30:00"))
-    print(get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00']))
+
+date_now: str = "2018-05-20 15:30:00"
+print(get_date_time(date_now))
+sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00'])
+print(sorted_df)
+greeting = get_time_for_greeting(date_now)
+print(greeting)
+print(get_transactions_with_usd_eur(sorted_df))
+# path_to_json = "../data/user_settings.json"
+# stocks_price = get_stocks("../data/user_settings.json")
+# print(stocks_price)
+
+
