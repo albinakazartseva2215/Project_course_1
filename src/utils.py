@@ -108,49 +108,54 @@ def get__usd_eur(path_to_json: object) -> list[dict]:
     except FileNotFoundError:
         print("Ошибка: Файл не найден!")
 
-# def get_stocks(path_to_json: object) -> list[dict]:
-#     """Функция принимает на вход путь к json файлу и возвращает цены на акции"""
-#     try:
-#         with open(path_to_json, "r", encoding="utf-8") as file:
-#             stocks_prices = []
-#             data = json.load(file)
-#             stocks_list = data["user_stocks"]
-#             for stock in stocks_list:
-#                 querystring = {"symbols":f"{stock}"}
-#                 response = requests.get(url_stocks, params=querystring)
-#                 status_code = response.status_code
-#                 if status_code == 200:
-#                     data = response.json()
-#                     stocks_price = data['data'][0]['high']
-#                     stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
-#                 else:
-#                     print(status_code)
-#             return stocks_prices
-#     except FileNotFoundError:
-#         utils_loger.error("Файл не найден")
-#         print("Файл не найден")
+def get_stocks(path_to_json: object) -> list[dict]:
+    """Функция принимает на вход путь к json файлу и возвращает цены на акции"""
+    try:
+        with open(path_to_json, "r", encoding="utf-8") as file:
+            stocks_prices = []
+            data = json.load(file)
+            stocks_list = data["user_stocks"]
+            for stock in stocks_list:
+                querystring = {"symbols":f"{stock}"}
+                response = requests.get(url_stocks, params=querystring)
+                status_code = response.status_code
+                if status_code == 200:
+                    data = response.json()
+                    stocks_price = data['data'][0]['high']
+                    stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
+                else:
+                    print(status_code)
+            return stocks_prices
+    except FileNotFoundError:
+        utils_loger.error("Файл не найден")
+        print("Файл не найден")
 
 
-# def get_top_transactions(sorted_df: DataFrame) -> list[dict]:
-#     """Функция принимает датафрейм и возвращает 5 топ-транзакций по сумме платежа"""
-#     top_pay_transactions = []
-#     sorted_pay_df = sorted_df.sort_values(by="Сумма платежа", ascending=False)
-#     top_transactions = sorted_pay_df.head()
-#     for i in range(len(sorted_pay_df)):
-#         for col in sorted_pay_df.columns:
-#             top_pay_transactions.append({"date": f"{top_transactions["Дата платежа"]}", "amount": f"{top_transactions["Сумма платежа"]}", "category": f"{top_transactions["Категория"]}", "description": f"{top_transactions["Описание"]}"})
-#     return top_pay_transactions
+def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[dict]:
+    """Функция принимает датафрейм и возвращает 5 топ-транзакций по сумме платежа"""
+    top_pay_transactions = []
+    sorted_pay_df = sorted_df.sort_values(by="Сумма платежа", ascending=False)
+    top_transactions = sorted_pay_df.head(5)
+    top_transactions_sorted = top_transactions[["Дата платежа", "Сумма платежа", "Категория", "Описание"]] #.to_dict(orient='records')
+    # formatted_json = json.dumps(result, ensure_ascii=False, indent=2)
+    for index, row in top_transactions_sorted.iterrows():
+        row = {'date': f"{row['Дата платежа']}", 'amount': row['Сумма платежа'], 'category': f"{row['Категория']}", 'description': f"{row['Описание']}"}
+        # transaction = {'date': f"{top_transactions_sorted['Дата платежа']}", 'amount': f"{top_transactions_sorted['Сумма платежа']}", 'category': f"{top_transactions_sorted['Категория']}", 'description': f"{top_transactions_sorted['Описание']}"}
+        top_pay_transactions.append(row)
+    return  top_pay_transactions
 
 
 # date_now = "2018-05-20 15:30:00"
 # print(get_date_time(date_now))
-# sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00'])
+sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00'])
 # print(sorted_df)
 # greeting = get_time_for_greeting(date_now)
 # print(greeting)
 path_to_json = "../data/user_settings.json"
-print(get__usd_eur(path_to_json))
+# print(get__usd_eur(path_to_json))
 # stocks_price = get_stocks("../data/user_settings.json")
 # print(stocks_price)
+top_transactions = get_top_transactions(sorted_df)
+print(top_transactions)
 
 
