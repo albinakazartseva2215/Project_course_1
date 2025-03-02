@@ -145,17 +145,42 @@ def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[di
     return  top_pay_transactions
 
 
-# date_now = "2018-05-20 15:30:00"
-# print(get_date_time(date_now))
-sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00'])
-# print(sorted_df)
-# greeting = get_time_for_greeting(date_now)
-# print(greeting)
-path_to_json = "../data/user_settings.json"
-# print(get__usd_eur(path_to_json))
-# stocks_price = get_stocks("../data/user_settings.json")
-# print(stocks_price)
-top_transactions = get_top_transactions(sorted_df)
-print(top_transactions)
+def get_card_with_spent(sorted_df: DataFrame) -> list[dict]:
+    """Функция принимает DataFrame и возвращает список карт с расходами"""
+    card_spent_transactions = []
+    card_sorted = sorted_df[["Номер карты", "Сумма платежа", "Кэшбэк", "Сумма операции с округлением"]]
+    for index, row in card_sorted.iterrows():
+        if row["Сумма платежа"] < 0:
+            last_digits = str(row["Номер карты"]).replace('*', '')
+            total_spent = row["Сумма операции с округлением"]
+            cashback = total_spent // 100
+            row = {"last_digits": last_digits, "total_spent": total_spent, "cashback": cashback}
+            card_spent_transactions.append(row)
+    df = pd.DataFrame(card_spent_transactions)
+    df = df[df['last_digits'] != 'nan']
+
+    # Группируем по 'last_digits' и суммируем 'total_spent' и 'cashback'
+    result = df.groupby('last_digits', as_index=False).agg({
+        'total_spent': 'sum',
+        'cashback': 'sum'
+    })
+    result_list = result.to_dict(orient='records')
+    return result_list
+
+if __name__ == "__main__":
+    # date_now = "2018-05-20 15:30:00"
+    # print(get_date_time(date_now))
+    sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00'])
+    # print(sorted_df)
+    # greeting = get_time_for_greeting(date_now)
+    # print(greeting)
+    path_to_json = "../data/user_settings.json"
+    # print(get__usd_eur(path_to_json))
+    # stocks_price = get_stocks("../data/user_settings.json")
+    # print(stocks_price)
+    top_transactions = get_top_transactions(sorted_df)
+    # print(top_transactions)
+    card_with_spent = get_card_with_spent(sorted_df)
+    print(card_with_spent)
 
 
