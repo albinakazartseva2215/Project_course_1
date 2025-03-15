@@ -57,5 +57,3 @@ def analyze_cashback(file_path: str, year: int, month: int) -> json:
 if __name__ == "__main__":
     result = analyze_cashback(PATH_TO_FILE, 2018, 5)
     print(result)
-
-

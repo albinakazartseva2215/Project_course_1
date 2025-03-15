@@ -29,12 +29,12 @@ logging.basicConfig(level=logging.DEBUG,
 utils_loger = logging.getLogger("utils")
 
 
-def get_date_time(date_time: str) -> list[str]:
+def get_date_time(date_time: str, format="%Y-%m-%d %H:%M:%S") -> list[str]:
     """Функция для страницы «Главная» принимает на вход строку с датой и временем в формате
        YYYY-MM-DD HH:MM:SS и возвращает период в виде списка строк"""
+    utils_loger.info("Запускаем работу функции get_date_time")
     try:
-        utils_loger.info("Запускаем работу функции get_date_time")
-        format_date = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S").strftime("%d.%m.%Y %H:%M:%S")
+        format_date = datetime.strptime(date_time, format).strftime("%d.%m.%Y %H:%M:%S")
         end_date = datetime.strptime(format_date, "%d.%m.%Y %H:%M:%S")
         year_end_date = end_date.year
         month_end_date = end_date.month
@@ -48,6 +48,7 @@ def get_date_time(date_time: str) -> list[str]:
         return period_date
     except ValueError:
         utils_loger.error("Введите дату ввиде строки в формате YYYY-MM-DD HH:MM:SS")
+        raise ValueError("Введите дату ввиде строки в формате YYYY-MM-DD HH:MM:SS")
     finally:
         utils_loger.info("Работа функции get_date_time завершена")
 
@@ -63,9 +64,9 @@ def get_path_and_period(path_to_file: str, period_date: list) -> Any | None:
         filtered_df = df[(df["Дата операции"] >= start_date) & (df["Дата операции"] <= end_date)]
         sorted_df = filtered_df.sort_values(by="Дата операции")
         return sorted_df
-    except Exception as e:
+    except FileNotFoundError:
         # Записываем ошибку, если произошло исключение во время выполнения программы
-        utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
+        utils_loger.warning(f"Произошла ошибка: FileNotFoundError", exc_info=True)
     finally:
         utils_loger.info("Работа функции get_path_and_period завершена")
 
@@ -95,7 +96,8 @@ def get_time_for_greeting(date_time: str) -> str:
         greeting_night = "Доброй ночи"
         return greeting_night
 
-def get__usd_eur(path_to_json: str) -> list[dict] | None:
+
+def get_usd_eur(path_to_json: str) -> list[dict] | None:
     """Функция прнимает на вход path_to_json и возвращает курс валют"""
     utils_loger.info("Запускаем работу функции get__usd_eur")
     try:
@@ -131,6 +133,7 @@ def get_stocks(path_to_json: str) -> list[dict[str, str]] | None:
     utils_loger.info("Запускаем работу функции get_stocks")
     try:
         with open(path_to_json, "r", encoding="utf-8") as file:
+            utils_loger.info("Открываем файл с данными для запроса")
             stocks_prices = []
             data = json.load(file)
             stocks_list = data["user_stocks"]
@@ -142,17 +145,21 @@ def get_stocks(path_to_json: str) -> list[dict[str, str]] | None:
                     data = response.json()
                     stocks_price = data['data'][0]['high']
                     stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
+                    utils_loger.info("Запрос успешен")
                 else:
+                    utils_loger.error(f"Запрос не успешен, статус-код: {status_code}")
                     print(status_code)
             return stocks_prices
-    except FileNotFoundError:
-        utils_loger.error("Файл не найден")
+    except Exception as e:
+        # Записываем ошибку, если произошло исключение во время выполнения программы
+        utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
     finally:
         utils_loger.info("Работа функции get_stocks завершена")
 
 
 def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[dict[str, str | Any]] | None:
     """Функция принимает датафрейм и возвращает 5 топ-транзакций по сумме платежа"""
+    utils_loger.info("Запускаем работу функции get_top_transactions")
     try:
         top_pay_transactions = []
         sorted_pay_df = sorted_df.sort_values(by="Сумма платежа", ascending=False)
@@ -161,15 +168,18 @@ def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[di
         # formatted_json = json.dumps(result, ensure_ascii=False, indent=2)
         for index, row in top_transactions_sorted.iterrows():
             row = {'date': f"{row['Дата платежа']}", 'amount': row['Сумма платежа'], 'category': f"{row['Категория']}", 'description': f"{row['Описание']}"}
-            # transaction = {'date': f"{top_transactions_sorted['Дата платежа']}", 'amount': f"{top_transactions_sorted['Сумма платежа']}", 'category': f"{top_transactions_sorted['Категория']}", 'description': f"{top_transactions_sorted['Описание']}"}
             top_pay_transactions.append(row)
         return  top_pay_transactions
-    except TypeError:
-        utils_loger.error("Функция принимает на вход Dataframe")
+    except Exception as e:
+    # Записываем ошибку, если произошло исключение во время выполнения программы
+        utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
+    finally:
+        utils_loger.info("Работа функции get_top_transactions завершена")
 
 
-def get_card_with_spent(sorted_df: DataFrame) -> list[dict]:
+def get_card_with_spent(sorted_df: DataFrame) -> None:
     """Функция принимает DataFrame и возвращает список карт с расходами"""
+    utils_loger.info("Запускаем работу функции get_card_with_spent")
     try:
         card_spent_transactions = []
         card_sorted = sorted_df[["Номер карты", "Сумма платежа", "Кэшбэк", "Сумма операции с округлением"]]
@@ -181,7 +191,7 @@ def get_card_with_spent(sorted_df: DataFrame) -> list[dict]:
                 row = {"last_digits": last_digits, "total_spent": total_spent, "cashback": cashback}
                 card_spent_transactions.append(row)
             else:
-                utils_loger.error("В расчет принимаем только расходы")
+                utils_loger.info("В расчет принимаем только расходы")
         df = pd.DataFrame(card_spent_transactions)
         df = df[df['last_digits'] != 'nan']
 
@@ -192,21 +202,25 @@ def get_card_with_spent(sorted_df: DataFrame) -> list[dict]:
         })
         result_list = result.to_dict(orient='records')
         return result_list
-    except ValueError:
-        utils_loger.error("Функция принимает на вход Dataframe")
+    except Exception as e:
+    # Записываем ошибку, если произошло исключение во время выполнения программы
+       utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
+    finally:
+        utils_loger.info("Работа функции get_card_with_spent завершена")
+
 
 if __name__ == "__main__":
-    # date_now = "2018-05-20 15:30:00"
+    # date_now = "2018-13-20 15:30:00"
     # print(get_date_time(date_now))
-    sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '20.05.2018 15:30:00'])
-    # print(sorted_df)
+    sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '03.05.2018 15:30:00'])
+    print(sorted_df.to_dict(orient="records"))
     # greeting = get_time_for_greeting(date_now)
     # print(greeting)
-    path_to_json = "../data/user_settings.json"
+    # path_to_json = "../data/user_settings.json"
     # print(get__usd_eur(path_to_json))
     # stocks_price = get_stocks("../data/user_settings.json")
     # print(stocks_price)
-    top_transactions = get_top_transactions(sorted_df)
+    # top_transactions = get_top_transactions(sorted_df)
     # print(top_transactions)
     card_with_spent = get_card_with_spent(sorted_df)
     print(card_with_spent)
