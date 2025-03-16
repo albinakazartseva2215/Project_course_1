@@ -33,4 +33,5 @@ python test_services.py
 ```
 
 ## Документация
-Для получения дополнительной информации обратитесь к [документации](https://nodejs.README.md)
+Для получения дополнительной информации обратитесь 
+к [документации](https://github.com/albinakazartseva2215/Project_course_1/tree/feature/course_1#)

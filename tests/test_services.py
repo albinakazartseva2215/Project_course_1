@@ -1,7 +1,5 @@
 import json
 
-import pandas as pd
-
 from src.services import analyze_cashback
 
 

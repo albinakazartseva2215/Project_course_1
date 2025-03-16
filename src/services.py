@@ -5,11 +5,13 @@ import pandas as pd
 
 from src.utils import PATH_TO_FILE
 
-
-logging.basicConfig(level=logging.DEBUG,
-                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    filename="../logs/example.log",
-                    filemode="w", encoding="utf-8")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="../logs/example.log",
+    filemode="w",
+    encoding="utf-8",
+)
 
 services_loger = logging.getLogger("services")
 
@@ -30,9 +32,7 @@ def analyze_cashback(file_path: str, year: int, month: int) -> json:
     df["Дата операции"] = pd.to_datetime(df["Дата операции"], format="%d.%m.%Y %H:%M:%S")
     services_loger.info("Преобразование даты в формат datetime")
     # Фильтрация данных по году и месяцу
-    filtered_data = df[
-        (df["Дата операции"].dt.year == year) & (df["Дата операции"].dt.month == month)
-        ]
+    filtered_data = df[(df["Дата операции"].dt.year == year) & (df["Дата операции"].dt.month == month)]
     services_loger.info("Фильтрация данных по году и месяцу")
     # Если filtered_data не содержит строк
     if filtered_data.empty:
@@ -53,6 +53,7 @@ def analyze_cashback(file_path: str, year: int, month: int) -> json:
 
     services_loger.info(f"Анализ завершён. Найдено {len(result)} категорий.")
     return json.dumps(result, ensure_ascii=False, indent=4)
+
 
 if __name__ == "__main__":
     result = analyze_cashback(PATH_TO_FILE, 2018, 5)

@@ -4,16 +4,18 @@ from unittest.mock import Mock
 import pandas as pd
 import pytest
 import requests
-from pytest_mock import mocker
 
-from src.utils import get_date_time, get_path_and_period, get_time_for_greeting, get_usd_eur, get_top_transactions, \
-    get_card_with_spent, get_stocks
+from src.utils import (get_card_with_spent, get_date_time, get_path_and_period, get_stocks, get_time_for_greeting,
+                       get_top_transactions, get_usd_eur)
 
 
-@pytest.mark.parametrize("input_date, expected_output", [
-    ("2023-10-15 14:30:00", ["01.10.2023 14:30:00", "15.10.2023 14:30:00"]),
-    ("2023-02-28 23:59:59", ["01.02.2023 23:59:59", "28.02.2023 23:59:59"]),
-    ])
+@pytest.mark.parametrize(
+    "input_date, expected_output",
+    [
+        ("2023-10-15 14:30:00", ["01.10.2023 14:30:00", "15.10.2023 14:30:00"]),
+        ("2023-02-28 23:59:59", ["01.02.2023 23:59:59", "28.02.2023 23:59:59"]),
+    ],
+)
 def test_get_date_time(input_date, expected_output):
     assert get_date_time(input_date) == expected_output
 
@@ -34,21 +36,21 @@ def test_get_path_and_period_correct_data(monkeypatch, test_dataframe):
 
     # Ожидаемый результат
     expected_data = {
-        'Дата операции': '2018-05-01 16:49:16',
-        'Дата платежа': '03.05.2018',
-        'Номер карты': '*7197',
-        'Статус': 'OK',
-        'Сумма операции': -296.8,
-        'Валюта операции': 'RUB',
-        'Сумма платежа': -296.8,
-        'Валюта платежа': 'RUB',
-        'Кэшбэк': 5,
-        'Категория': 'Фастфуд',
-        'MCC': 5814.0,
-        'Описание': 'Бургер Кинг',
-        'Бонусы (включая кэшбэк)': 5,
-        'Округление на инвесткопилку': 0,
-        'Сумма операции с округлением': 296.8
+        "Дата операции": "2018-05-01 16:49:16",
+        "Дата платежа": "03.05.2018",
+        "Номер карты": "*7197",
+        "Статус": "OK",
+        "Сумма операции": -296.8,
+        "Валюта операции": "RUB",
+        "Сумма платежа": -296.8,
+        "Валюта платежа": "RUB",
+        "Кэшбэк": 5,
+        "Категория": "Фастфуд",
+        "MCC": 5814.0,
+        "Описание": "Бургер Кинг",
+        "Бонусы (включая кэшбэк)": 5,
+        "Округление на инвесткопилку": 0,
+        "Сумма операции с округлением": 296.8,
     }
     expected_df = pd.DataFrame(expected_data, index=[0])
     expected_df["Дата операции"] = pd.to_datetime(expected_df["Дата операции"], format="%Y-%m-%d %H:%M:%S")
@@ -63,8 +65,11 @@ def test_get_path_and_period_correct_data(monkeypatch, test_dataframe):
 
 def test_get_path_and_period_invalid_data(monkeypatch):
     # Мокируем pd.read_excel, чтобы вызвать исключение
-    monkeypatch.setattr(pd, "read_excel",
-                        lambda *args, **kwargs: (_ for _ in ()).throw(FileNotFoundError("Произошла ошибка: FileNotFoundError")))
+    monkeypatch.setattr(
+        pd,
+        "read_excel",
+        lambda *args, **kwargs: (_ for _ in ()).throw(FileNotFoundError("Произошла ошибка: FileNotFoundError")),
+    )
 
     # Входные данные
     path_to_file = "invalid_file.xlsx"
@@ -105,19 +110,14 @@ def test_get_time_for_greeting_logging(mocker):
 
 def test_get_usd_eur_success(mocker):
     # Мокируем открытие файла и чтение JSON
-    mock_json_data = {
-        "user_currencies": ["USD"]
-    }
+    mock_json_data = {"user_currencies": ["USD"]}
     mock_file = mocker.mock_open(read_data=json.dumps(mock_json_data))
     mocker.patch("builtins.open", mock_file)
 
     # Мокируем requests.get
     mock_response = Mock()
     mock_response.status_code = 200
-    mock_response.json.return_value = {
-        "query": {"from": "USD"},
-        "result": 75.50
-    }
+    mock_response.json.return_value = {"query": {"from": "USD"}, "result": 75.50}
     mocker.patch("requests.get", return_value=mock_response)
 
     # Вызов функции
@@ -146,9 +146,7 @@ def test_get_usd_eur_invalid_json(mocker):
 
 def test_get_usd_eur_bad_status_code(mocker):
     # Мокируем открытие файла и чтение JSON
-    mock_json_data = {
-        "user_currencies": ["USD"]
-    }
+    mock_json_data = {"user_currencies": ["USD"]}
     mock_file = mocker.mock_open(read_data=json.dumps(mock_json_data))
     mocker.patch("builtins.open", mock_file)
 
@@ -169,7 +167,13 @@ def test_get_top_transactions_correct_data(df_data):
     result = get_top_transactions(df_data)
 
     # Ожидаемый результат
-    expected_result = [{'date': '04.05.2018', 'amount': -58.0, 'category': 'Фастфуд', 'description': "McDonald's"}, {'date': '03.05.2018', 'amount': -69.9, 'category': 'Фастфуд', 'description': 'Бургер Кинг'}, {'date': '02.05.2018', 'amount': -208.0, 'category': 'Ж/д билеты', 'description': 'Московский метрополитен'}, {'date': '04.05.2018', 'amount': -221.27, 'category': 'Супермаркеты', 'description': 'Пятёрочка'}, {'date': '05.05.2018', 'amount': -250.0, 'category': 'Связь', 'description': 'МТС'}]
+    expected_result = [
+        {"date": "04.05.2018", "amount": -58.0, "category": "Фастфуд", "description": "McDonald's"},
+        {"date": "03.05.2018", "amount": -69.9, "category": "Фастфуд", "description": "Бургер Кинг"},
+        {"date": "02.05.2018", "amount": -208.0, "category": "Ж/д билеты", "description": "Московский метрополитен"},
+        {"date": "04.05.2018", "amount": -221.27, "category": "Супермаркеты", "description": "Пятёрочка"},
+        {"date": "05.05.2018", "amount": -250.0, "category": "Связь", "description": "МТС"},
+    ]
 
     # Проверка результата
     assert result == expected_result
@@ -181,8 +185,8 @@ def test_get_card_with_spent_correct_data(df_data):
 
     # Ожидаемый результат
     expected_result = [
-        {'last_digits': '4556', 'total_spent': 250.0, 'cashback': 2.0},
-        {'last_digits': '7197', 'total_spent': 31869.55, 'cashback': 312.0}
+        {"last_digits": "4556", "total_spent": 250.0, "cashback": 2.0},
+        {"last_digits": "7197", "total_spent": 31869.55, "cashback": 312.0},
     ]
 
     # Проверка результата
@@ -191,9 +195,7 @@ def test_get_card_with_spent_correct_data(df_data):
 
 def test_get_stocks_correct_data(mocker):
     # Мокируем открытие файла и чтение JSON
-    mock_json_data = {
-        "user_stocks": ["AAPL"]
-    }
+    mock_json_data = {"user_stocks": ["AAPL"]}
     mock_file = mocker.mock_open(read_data=json.dumps(mock_json_data))
     mocker.patch("builtins.open", mock_file)
 
@@ -201,32 +203,27 @@ def test_get_stocks_correct_data(mocker):
     mock_response = Mock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
-    "pagination": {
-        "limit": 100,
-        "offset": 0,
-        "count": 100,
-        "total": 9944
-    },
-    "data": [
-        {
-            "open": 129.8,
-            "high": 133.04,
-            "low": 129.47,
-            "close": 132.995,
-            "volume": 106686703.0,
-            "adj_high": 133.04,
-            "adj_low": 129.47,
-            "adj_close": 132.995,
-            "adj_open": 129.8,
-            "adj_volume": 106686703.0,
-            "split_factor": 1.0,
-            "dividend": 0.0,
-            "symbol": "AAPL",
-            "exchange": "XNAS",
-            "date": "2021-04-09T00:00:00+0000"
+        "pagination": {"limit": 100, "offset": 0, "count": 100, "total": 9944},
+        "data": [
+            {
+                "open": 129.8,
+                "high": 133.04,
+                "low": 129.47,
+                "close": 132.995,
+                "volume": 106686703.0,
+                "adj_high": 133.04,
+                "adj_low": 129.47,
+                "adj_close": 132.995,
+                "adj_open": 129.8,
+                "adj_volume": 106686703.0,
+                "split_factor": 1.0,
+                "dividend": 0.0,
+                "symbol": "AAPL",
+                "exchange": "XNAS",
+                "date": "2021-04-09T00:00:00+0000",
             },
-    ]
-}
+        ],
+    }
     mocker.patch("requests.get", return_value=mock_response)
 
     # Вызов функции
@@ -243,9 +240,7 @@ def test_get_stocks_correct_data(mocker):
 
 def test_get_stocks_http_error(mocker):
     # Мокируем открытие файла и чтение JSON
-    mock_json_data = {
-        "user_stocks": ["AAPL", "GOOGL"]
-    }
+    mock_json_data = {"user_stocks": ["AAPL", "GOOGL"]}
     mock_file = mocker.mock_open(read_data=json.dumps(mock_json_data))
     mocker.patch("builtins.open", mock_file)
 

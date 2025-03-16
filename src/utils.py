@@ -2,14 +2,12 @@ import json
 import logging
 import os
 from datetime import datetime
-from logging import Logger
-from typing import List, Dict, Any
+from typing import Any
 
 import pandas as pd
 import requests
-from pandas import DataFrame, Series
-
 from dotenv import load_dotenv
+from pandas import DataFrame
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -20,10 +18,13 @@ url_stocks = f"https://api.marketstack.com/v1/eod/latest?access_key={ACCESS_KEY}
 PATH_TO_FILE = "../data/operations.xlsx"
 PATH_TO_FILE_JSON = "../data/user_settings.json"
 
-logging.basicConfig(level=logging.DEBUG,
-                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    filename="../logs/example.log",
-                    filemode="w", encoding="utf-8")
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="../logs/example.log",
+    filemode="w",
+    encoding="utf-8",
+)
 
 # Создаем логеры для различных компонентов программы
 utils_loger = logging.getLogger("utils")
@@ -31,7 +32,7 @@ utils_loger = logging.getLogger("utils")
 
 def get_date_time(date_time: str, format="%Y-%m-%d %H:%M:%S") -> list[str]:
     """Функция для страницы «Главная» принимает на вход строку с датой и временем в формате
-       YYYY-MM-DD HH:MM:SS и возвращает период в виде списка строк"""
+    YYYY-MM-DD HH:MM:SS и возвращает период в виде списка строк"""
     utils_loger.info("Запускаем работу функции get_date_time")
     try:
         format_date = datetime.strptime(date_time, format).strftime("%d.%m.%Y %H:%M:%S")
@@ -73,11 +74,11 @@ def get_path_and_period(path_to_file: str, period_date: list) -> Any | None:
 
 def get_time_for_greeting(date_time: str) -> str:
     """Функция принимает в формате YYYY-MM-DD HH:MM:SS и возвращает приветствие, например, 'Добрый день,
-        в зависимости от времени суток"""
+    в зависимости от времени суток"""
     utils_loger.info("Запускаем работу функции get_time_for_greeting")
     global user_datetime
     try:
-        user_datetime = datetime.strptime(date_time, '%Y-%m-%d %H:%M:%S')
+        user_datetime = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
 
     except ValueError:
         utils_loger.error("Некорректный формат даты и времени")
@@ -88,7 +89,7 @@ def get_time_for_greeting(date_time: str) -> str:
         return greeting_morning
     elif 12 <= hour_user < 18:
         greeting_day = "Добрый день"
-        return  greeting_day
+        return greeting_day
     elif 18 <= hour_user < 22:
         greeting_evening = "Добрый вечер"
         return greeting_evening
@@ -117,7 +118,9 @@ def get_usd_eur(path_to_json: str) -> list[dict] | None:
                         currency_code_response = result["query"]["from"]
                         currency_amount = round(result["result"], 2)
 
-                        currency_rates.append({"currency": f"{currency_code_response}", "rate": f"{round(currency_amount, 2)}"})
+                        currency_rates.append(
+                            {"currency": f"{currency_code_response}", "rate": f"{round(currency_amount, 2)}"}
+                        )
                     else:
                         print(status_code)
                 except requests.exceptions.RequestException:
@@ -127,6 +130,7 @@ def get_usd_eur(path_to_json: str) -> list[dict] | None:
         utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
     finally:
         utils_loger.info("Работа функции get__usd_eur завершена")
+
 
 def get_stocks(path_to_json: str) -> list[dict[str, str]] | None:
     """Функция принимает на вход путь к json файлу и возвращает цены на акции"""
@@ -138,12 +142,12 @@ def get_stocks(path_to_json: str) -> list[dict[str, str]] | None:
             data = json.load(file)
             stocks_list = data["user_stocks"]
             for stock in stocks_list:
-                querystring = {"symbols":f"{stock}"}
+                querystring = {"symbols": f"{stock}"}
                 response = requests.get(url_stocks, params=querystring)
                 status_code = response.status_code
                 if status_code == 200:
                     data = response.json()
-                    stocks_price = data['data'][0]['high']
+                    stocks_price = data["data"][0]["high"]
                     stocks_prices.append({"stock": f"{stock}", "price": f"{stocks_price}"})
                     utils_loger.info("Запрос успешен")
                 else:
@@ -164,14 +168,21 @@ def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[di
         top_pay_transactions = []
         sorted_pay_df = sorted_df.sort_values(by="Сумма платежа", ascending=False)
         top_transactions = sorted_pay_df.head(5)
-        top_transactions_sorted = top_transactions[["Дата платежа", "Сумма платежа", "Категория", "Описание"]] #.to_dict(orient='records')
+        top_transactions_sorted = top_transactions[
+            ["Дата платежа", "Сумма платежа", "Категория", "Описание"]
+        ]  # .to_dict(orient='records')
         # formatted_json = json.dumps(result, ensure_ascii=False, indent=2)
         for index, row in top_transactions_sorted.iterrows():
-            row = {'date': f"{row['Дата платежа']}", 'amount': row['Сумма платежа'], 'category': f"{row['Категория']}", 'description': f"{row['Описание']}"}
+            row = {
+                "date": f"{row['Дата платежа']}",
+                "amount": row["Сумма платежа"],
+                "category": f"{row['Категория']}",
+                "description": f"{row['Описание']}",
+            }
             top_pay_transactions.append(row)
-        return  top_pay_transactions
+        return top_pay_transactions
     except Exception as e:
-    # Записываем ошибку, если произошло исключение во время выполнения программы
+        # Записываем ошибку, если произошло исключение во время выполнения программы
         utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
     finally:
         utils_loger.info("Работа функции get_top_transactions завершена")
@@ -185,7 +196,7 @@ def get_card_with_spent(sorted_df: DataFrame) -> None:
         card_sorted = sorted_df[["Номер карты", "Сумма платежа", "Кэшбэк", "Сумма операции с округлением"]]
         for index, row in card_sorted.iterrows():
             if row["Сумма платежа"] < 0:
-                last_digits = str(row["Номер карты"]).replace('*', '')
+                last_digits = str(row["Номер карты"]).replace("*", "")
                 total_spent = row["Сумма операции с округлением"]
                 cashback = total_spent // 100
                 row = {"last_digits": last_digits, "total_spent": total_spent, "cashback": cashback}
@@ -193,18 +204,15 @@ def get_card_with_spent(sorted_df: DataFrame) -> None:
             else:
                 utils_loger.info("В расчет принимаем только расходы")
         df = pd.DataFrame(card_spent_transactions)
-        df = df[df['last_digits'] != 'nan']
+        df = df[df["last_digits"] != "nan"]
 
         # Группируем по 'last_digits' и суммируем 'total_spent' и 'cashback'
-        result = df.groupby('last_digits', as_index=False).agg({
-            'total_spent': 'sum',
-            'cashback': 'sum'
-        })
-        result_list = result.to_dict(orient='records')
+        result = df.groupby("last_digits", as_index=False).agg({"total_spent": "sum", "cashback": "sum"})
+        result_list = result.to_dict(orient="records")
         return result_list
     except Exception as e:
-    # Записываем ошибку, если произошло исключение во время выполнения программы
-       utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
+        # Записываем ошибку, если произошло исключение во время выполнения программы
+        utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
     finally:
         utils_loger.info("Работа функции get_card_with_spent завершена")
 
@@ -212,7 +220,7 @@ def get_card_with_spent(sorted_df: DataFrame) -> None:
 if __name__ == "__main__":
     # date_now = "2018-13-20 15:30:00"
     # print(get_date_time(date_now))
-    sorted_df = get_path_and_period(PATH_TO_FILE, ['01.05.2018 15:30:00', '03.05.2018 15:30:00'])
+    sorted_df = get_path_and_period(PATH_TO_FILE, ["01.05.2018 15:30:00", "03.05.2018 15:30:00"])
     print(sorted_df.to_dict(orient="records"))
     # greeting = get_time_for_greeting(date_now)
     # print(greeting)
@@ -224,5 +232,3 @@ if __name__ == "__main__":
     # print(top_transactions)
     card_with_spent = get_card_with_spent(sorted_df)
     print(card_with_spent)
-
-
