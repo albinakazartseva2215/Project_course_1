@@ -12,7 +12,7 @@ from pandas import DataFrame
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 ACCESS_KEY = os.getenv("API_KEY_MARKET")
-url = f"https://api.apilayer.com/exchangerates_data/convert"
+url = "https://api.apilayer.com/exchangerates_data/convert"
 url_stocks = f"https://api.marketstack.com/v1/eod/latest?access_key={ACCESS_KEY}"
 
 PATH_TO_FILE = "../data/operations.xlsx"
@@ -30,12 +30,12 @@ logging.basicConfig(
 utils_loger = logging.getLogger("utils")
 
 
-def get_date_time(date_time: str, format="%Y-%m-%d %H:%M:%S") -> list[str]:
+def get_date_time(date_time: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> list[str]:
     """Функция для страницы «Главная» принимает на вход строку с датой и временем в формате
     YYYY-MM-DD HH:MM:SS и возвращает период в виде списка строк"""
     utils_loger.info("Запускаем работу функции get_date_time")
     try:
-        format_date = datetime.strptime(date_time, format).strftime("%d.%m.%Y %H:%M:%S")
+        format_date = datetime.strptime(date_time, date_format).strftime("%d.%m.%Y %H:%M:%S")
         end_date = datetime.strptime(format_date, "%d.%m.%Y %H:%M:%S")
         year_end_date = end_date.year
         month_end_date = end_date.month
@@ -54,7 +54,7 @@ def get_date_time(date_time: str, format="%Y-%m-%d %H:%M:%S") -> list[str]:
         utils_loger.info("Работа функции get_date_time завершена")
 
 
-def get_path_and_period(path_to_file: str, period_date: list) -> Any | None:
+def get_path_and_period(path_to_file: str, period_date: list) -> DataFrame:
     """Функция принимает путь к Excel-файлу, список дат и возвращает таблицу с датами в принимаемом периоде"""
     try:
         utils_loger.info("Запускаем работу функции get_path_and_period")
@@ -67,38 +67,37 @@ def get_path_and_period(path_to_file: str, period_date: list) -> Any | None:
         return sorted_df
     except FileNotFoundError:
         # Записываем ошибку, если произошло исключение во время выполнения программы
-        utils_loger.warning(f"Произошла ошибка: FileNotFoundError", exc_info=True)
+        utils_loger.warning("Произошла ошибка: FileNotFoundError", exc_info=True)
     finally:
         utils_loger.info("Работа функции get_path_and_period завершена")
 
 
-def get_time_for_greeting(date_time: str) -> str:
+def get_time_for_greeting() -> str:
     """Функция принимает в формате YYYY-MM-DD HH:MM:SS и возвращает приветствие, например, 'Добрый день,
     в зависимости от времени суток"""
     utils_loger.info("Запускаем работу функции get_time_for_greeting")
-    global user_datetime
     try:
-        user_datetime = datetime.strptime(date_time, "%Y-%m-%d %H:%M:%S")
+        user_datetime = datetime.now()
+        hour_user = user_datetime.hour
+        if 5 <= hour_user < 12:
+            greeting_morning = "Доброе утро"
+            return greeting_morning
+        elif 12 <= hour_user < 18:
+            greeting_day = "Добрый день"
+            return greeting_day
+        elif 18 <= hour_user < 22:
+            greeting_evening = "Добрый вечер"
+            return greeting_evening
+        else:
+            greeting_night = "Доброй ночи"
+            return greeting_night
+    except Exception as e:
+        utils_loger.warning(f"Произошла ошибка: {e}", exc_info=True)
+    finally:
+        utils_loger.info("Работа функции get_time_for_greeting завершена")
 
-    except ValueError:
-        utils_loger.error("Некорректный формат даты и времени")
 
-    hour_user = user_datetime.hour
-    if 5 <= hour_user < 12:
-        greeting_morning = "Доброе утро"
-        return greeting_morning
-    elif 12 <= hour_user < 18:
-        greeting_day = "Добрый день"
-        return greeting_day
-    elif 18 <= hour_user < 22:
-        greeting_evening = "Добрый вечер"
-        return greeting_evening
-    else:
-        greeting_night = "Доброй ночи"
-        return greeting_night
-
-
-def get_usd_eur(path_to_json: str) -> list[dict] | None:
+def get_usd_eur(path_to_json: str) -> list[dict]:
     """Функция прнимает на вход path_to_json и возвращает курс валют"""
     utils_loger.info("Запускаем работу функции get__usd_eur")
     try:
@@ -132,7 +131,7 @@ def get_usd_eur(path_to_json: str) -> list[dict] | None:
         utils_loger.info("Работа функции get__usd_eur завершена")
 
 
-def get_stocks(path_to_json: str) -> list[dict[str, str]] | None:
+def get_stocks(path_to_json: str) -> list[dict[str, str]]:
     """Функция принимает на вход путь к json файлу и возвращает цены на акции"""
     utils_loger.info("Запускаем работу функции get_stocks")
     try:
@@ -161,7 +160,7 @@ def get_stocks(path_to_json: str) -> list[dict[str, str]] | None:
         utils_loger.info("Работа функции get_stocks завершена")
 
 
-def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[dict[str, str | Any]] | None:
+def get_top_transactions(sorted_df: DataFrame) -> list[dict]:
     """Функция принимает датафрейм и возвращает 5 топ-транзакций по сумме платежа"""
     utils_loger.info("Запускаем работу функции get_top_transactions")
     try:
@@ -188,7 +187,7 @@ def get_top_transactions(sorted_df: DataFrame, top_transactions=None) -> list[di
         utils_loger.info("Работа функции get_top_transactions завершена")
 
 
-def get_card_with_spent(sorted_df: DataFrame) -> None:
+def get_card_with_spent(sorted_df: DataFrame) -> list[dict]:
     """Функция принимает DataFrame и возвращает список карт с расходами"""
     utils_loger.info("Запускаем работу функции get_card_with_spent")
     try:
@@ -218,17 +217,17 @@ def get_card_with_spent(sorted_df: DataFrame) -> None:
 
 
 if __name__ == "__main__":
-    # date_now = "2018-13-20 15:30:00"
+    # date_now = "2018-05-20 15:30:00"
     # print(get_date_time(date_now))
-    sorted_df = get_path_and_period(PATH_TO_FILE, ["01.05.2018 15:30:00", "03.05.2018 15:30:00"])
-    print(sorted_df.to_dict(orient="records"))
-    # greeting = get_time_for_greeting(date_now)
-    # print(greeting)
+    # sorted_df = get_path_and_period(PATH_TO_FILE, ["01.05.2018 15:30:00", "03.05.2018 15:30:00"])
+    # print(sorted_df.to_dict(orient="records"))
+    greeting = get_time_for_greeting()
+    print(greeting)
     # path_to_json = "../data/user_settings.json"
     # print(get__usd_eur(path_to_json))
     # stocks_price = get_stocks("../data/user_settings.json")
     # print(stocks_price)
     # top_transactions = get_top_transactions(sorted_df)
     # print(top_transactions)
-    card_with_spent = get_card_with_spent(sorted_df)
-    print(card_with_spent)
+    # card_with_spent = get_card_with_spent(sorted_df)
+    # print(card_with_spent)

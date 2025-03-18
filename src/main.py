@@ -8,8 +8,8 @@ from src.views import main_str
 
 if __name__ == "__main__":
     # Вызов функции main_str из модуля views
-    date_now = "2018-05-20 15:30:00"
-    result_views = main_str(date_now)
+    date_request = "2018-05-20 15:30:00"
+    result_views = main_str(date_request)
     print(result_views)
 
     # Вызов функции spending_by_category с декоратором report_decorator из модуля reports

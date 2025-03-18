@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Dict, Any
 
 from src.utils import (PATH_TO_FILE, PATH_TO_FILE_JSON, get_card_with_spent, get_date_time, get_path_and_period,
                        get_stocks, get_time_for_greeting, get_top_transactions, get_usd_eur)
@@ -16,14 +17,14 @@ logging.basicConfig(
 views_loger = logging.getLogger("views")
 
 
-def main_str(date_time: str):
+def main_str(date_time: str) -> Dict[str, Any]:
     """Функция для страницы «Главная» принимает на вход строку с датой и временем в формате
     YYYY-MM-DD HH:MM:SS и возвращающую JSON-ответ"""
     try:
         # Записываем сообщение о запуске приложения
         views_loger.info("Запуск приложения")
-        greeting = get_time_for_greeting(date_time)
-        time_period = get_date_time(date_time)
+        greeting = get_time_for_greeting()
+        time_period: str = get_date_time(date_time)
         sorted_df = get_path_and_period(PATH_TO_FILE, time_period)
         cards = get_card_with_spent(sorted_df)
         top_transactions = get_top_transactions(sorted_df)

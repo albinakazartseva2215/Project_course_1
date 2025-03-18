@@ -53,7 +53,7 @@ def report_decorator(filename=None):
 
 
 @report_decorator("report_spending_by_category.json")
-def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str] = None) -> dict:
+def spending_by_category(transactions: pd.DataFrame, category: str, date: Optional[str]) -> dict | None:
     """
     Функция возвращает траты по заданной категории за последние три месяца.
     :rtype: object

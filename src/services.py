@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import Any
 
 import pandas as pd
 
@@ -16,7 +17,7 @@ logging.basicConfig(
 services_loger = logging.getLogger("services")
 
 
-def analyze_cashback(file_path: str, year: int, month: int) -> json:
+def analyze_cashback(file_path: str, year: int, month: int) -> dict[Any, Any] | str:
     """
     Анализирует выгодность категорий повышенного кешбэка.
     :return: JSON с суммами кешбэка по категориям.
